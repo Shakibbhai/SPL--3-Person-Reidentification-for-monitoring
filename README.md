@@ -162,25 +162,31 @@ npm run dev
 
 ## Screenshots
 
-### System Architecture
+## Screenshots
 
-![System Architecture](docs/architecture.png)
-
-### Dashboard
-
-![Dashboard](docs/dashboard.png)
-
-### Retrieval Results
+### 1. Intelligent Image Ranking (Top-5 Retrieval)
 
 ![Retrieval Results](docs/retrieval_results.png)
 
-### Working Re-Identification Images
+### 2. Gallery Management & Identity Dashboard
 
-![Working Re-Identification](docs/working_reid.png)
+![Dashboard](docs/dashboard.png)
 
-### t-SNE Visualization
+### 3. Continuous Video Engine & Dynamic Re-ID
 
-![t-SNE Visualization](docs/tsne_visualization.png)
+![Initial Detection](docs/working_reid_1.png)
+
+![Subject Exits Frame](docs/working_reid_exit.png)
+
+![Camera Re-entry](docs/working_reid_2.png)
+
+### 4. Performance Metrics (CMC Curve & mAP)
+
+![Performance Metrics](docs/performance_metrics.png)
+
+### 5. Robustness against Adversarial Conditions
+
+![Robustness](docs/robustness.png)
 
 ---
 
