@@ -1,10 +1,10 @@
-# PERCEPTA - Semantic Person Re-Identification System
+# 👁️ PERCEPTA - Semantic Person Re-Identification System
 
 An AI-powered person re-identification system that performs robust cross-camera identity retrieval using transformer-based feature learning and semantic similarity search. The project integrates object detection, feature extraction, and vector indexing to identify individuals across different surveillance cameras, even under challenging environmental conditions.
 
 ---
 
-## Features
+## ✨ Features
 
 - Real-time pedestrian detection
 - Cross-camera person re-identification
@@ -18,7 +18,7 @@ An AI-powered person re-identification system that performs robust cross-camera 
 
 ---
 
-## System Workflow
+## 🔄 System Workflow
 
 ```
 Input Image / Video
@@ -43,9 +43,9 @@ Top-k Identity Retrieval
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-### AI & Machine Learning
+### 🧠 AI & Machine Learning
 
 - Python
 - PyTorch
@@ -56,11 +56,11 @@ Top-k Identity Retrieval
 - Circle Loss
 - FAISS
 
-### Backend
+### ⚙️ Backend
 
 - FastAPI
 
-### Frontend
+### 🎨 Frontend
 
 - React
 - Vite
@@ -68,7 +68,7 @@ Top-k Identity Retrieval
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 PERCEPTA-ReIdentification-System
@@ -97,13 +97,13 @@ PERCEPTA-ReIdentification-System
 
 ---
 
-## Dataset
+## 📊 Dataset
 
 Market-1501
 
 ---
 
-## Evaluation Metrics
+## 📈 Evaluation Metrics
 
 - Rank-1
 - Rank-5
@@ -113,7 +113,7 @@ Market-1501
 
 ---
 
-## Installation
+## 🚀 Installation
 
 Clone the repository
 
@@ -142,7 +142,7 @@ npm install
 
 ---
 
-## Run Backend
+## 🏃‍♂️ Run Backend
 
 ```bash
 cd backend
@@ -151,7 +151,7 @@ python main.py
 
 ---
 
-## Run Frontend
+## 🏃‍♂️ Run Frontend
 
 ```bash
 cd frontend
@@ -160,19 +160,17 @@ npm run dev
 
 ---
 
-## Screenshots
+## 📸 Screenshots
 
-## Screenshots
-
-### 1. Intelligent Image Ranking (Top-5 Retrieval)
+### 🎯 1. Intelligent Image Ranking (Top-5 Retrieval)
 
 ![Retrieval Results](docs/retrieval_results.png)
 
-### 2. Gallery Management & Identity Dashboard
+### 🗂️ 2. Gallery Management & Identity Dashboard
 
 ![Dashboard](docs/dashboard.png)
 
-### 3. Continuous Video Engine & Dynamic Re-ID
+### 🎥 3. Continuous Video Engine & Dynamic Re-ID
 
 ![Initial Detection](docs/working_reid_1.png)
 
@@ -180,17 +178,17 @@ npm run dev
 
 ![Camera Re-entry](docs/working_reid_2.png)
 
-### 4. Performance Metrics (CMC Curve & mAP)
+### 📊 4. Performance Metrics (CMC Curve & mAP)
 
 ![Performance Metrics](docs/performance_metrics.png)
 
-### 5. Robustness against Adversarial Conditions
+### 🛡️ 5. Robustness against Adversarial Conditions
 
 ![Robustness](docs/robustness.png)
 
 ---
 
-## Future Enhancements
+## 🔮 Future Enhancements
 
 - Multi-camera deployment
 - Edge AI optimization
@@ -200,6 +198,6 @@ npm run dev
 
 ---
 
-## License
+## 📜 License
 
 This project is intended for educational and demonstration purposes.
