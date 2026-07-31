@@ -1,4 +1,4 @@
-# 👁️ PERCEPTA - Semantic Person Re-Identification System
+# 💠 PERCEPTA - Semantic Person Re-Identification System
 
 An AI-powered person re-identification system that performs robust cross-camera identity retrieval using transformer-based feature learning and semantic similarity search. The project integrates object detection, feature extraction, and vector indexing to identify individuals across different surveillance cameras, even under challenging environmental conditions.
 
@@ -43,18 +43,22 @@ Top-k Identity Retrieval
 
 ---
 
+## 🤖 AI Models & Algorithms
+
+- **Feature Extraction:** DINOv3 (Vision Transformer)
+- **Object Detection:** YOLOv8, RT-DETR
+- **Optimization Metric:** Circle Loss
+
+---
+
 ## 🛠️ Tech Stack
 
-### 🧠 AI & Machine Learning
+### 🧠 Core Libraries & Frameworks
 
 - Python
 - PyTorch
 - OpenCV
-- DINOv3
-- RT-DETR
-- YOLOv8
-- Circle Loss
-- FAISS
+- FAISS Vector Store
 
 ### ⚙️ Backend
 
@@ -99,7 +103,7 @@ PERCEPTA-ReIdentification-System
 
 ## 📊 Dataset
 
-Market-1501
+**Market-1501**: A large-scale public benchmark dataset containing 32,668 annotated bounding boxes of 1,501 identities captured across 6 different camera viewpoints.
 
 ---
 
@@ -109,7 +113,6 @@ Market-1501
 - Rank-5
 - Rank-10
 - Mean Average Precision (mAP)
-- t-SNE Visualization
 
 ---
 
@@ -162,29 +165,23 @@ npm run dev
 
 ## 📸 Screenshots
 
-### 🎯 1. Intelligent Image Ranking (Top-5 Retrieval)
+### 🎯 1. Intelligent Image Ranking & Gallery Management
 
-![Retrieval Results](docs/retrieval_results.png)
+| Intelligent Image Ranking (Top-5 Retrieval) | Gallery Management & Identity Dashboard |
+|:---:|:---:|
+| ![Retrieval Results](docs/retrieval_results.png) | ![Dashboard](docs/dashboard.png) |
 
-### 🗂️ 2. Gallery Management & Identity Dashboard
+### 🎥 2. Continuous Video Engine & Dynamic Re-ID
 
-![Dashboard](docs/dashboard.png)
+| Initial Detection | Subject Exits Frame | Camera Re-entry |
+|:---:|:---:|:---:|
+| ![Initial Detection](docs/working_reid_1.png) | ![Subject Exits Frame](docs/reid_exit.png) | ![Camera Re-entry](docs/working_reid_2.png) |
 
-### 🎥 3. Continuous Video Engine & Dynamic Re-ID
+### 📊 3. Performance & Robustness Metrics
 
-![Initial Detection](docs/working_reid_1.png)
-
-![Subject Exits Frame](docs/reid_exit.png)
-
-![Camera Re-entry](docs/working_reid_2.png)
-
-### 📊 4. Performance Metrics (CMC Curve & mAP)
-
-![Performance Metrics](docs/performance_metrics.png)
-
-### 🛡️ 5. Robustness against Adversarial Conditions
-
-![Robustness](docs/robustness.png)
+| Performance Metrics (CMC Curve & mAP) | Robustness against Adversarial Conditions |
+|:---:|:---:|
+| ![Performance Metrics](docs/performance_metrics.png) | ![Robustness](docs/robustness.png) |
 
 ---
 
@@ -201,3 +198,15 @@ npm run dev
 ## 📜 License
 
 This project is intended for educational and demonstration purposes.
+
+---
+
+## 👩‍💻 Author
+
+**Md Nihal Hussain**
+
+GitHub: [https://github.com/nihal3000](https://github.com/nihal3000)
+
+---
+
+⭐ If you found this project useful, consider giving it a star!
