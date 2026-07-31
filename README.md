@@ -164,19 +164,23 @@ npm run dev
 
 ### System Architecture
 
-> Add `docs/architecture.png`
+![System Architecture](docs/architecture.png)
 
 ### Dashboard
 
-> Add `docs/dashboard.png`
+![Dashboard](docs/dashboard.png)
 
 ### Retrieval Results
 
-> Add `docs/retrieval_results.png`
+![Retrieval Results](docs/retrieval_results.png)
+
+### Working Re-Identification Images
+
+![Working Re-Identification](docs/working_reid.png)
 
 ### t-SNE Visualization
 
-> Add `docs/tsne_visualization.png`
+![t-SNE Visualization](docs/tsne_visualization.png)
 
 ---
 
