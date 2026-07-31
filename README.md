@@ -118,7 +118,7 @@ Market-1501
 Clone the repository
 
 ```bash
-git clone https://github.com/<your-username>/PERCEPTA-ReIdentification-System.git
+git clone https://github.com/nihal3000/PERCEPTA-ReIdentification-System.git
 ```
 
 Move into the project
@@ -174,7 +174,7 @@ npm run dev
 
 ![Initial Detection](docs/working_reid_1.png)
 
-![Subject Exits Frame](docs/working_reid_exit.png)
+![Subject Exits Frame](docs/reid_exit.png)
 
 ![Camera Re-entry](docs/working_reid_2.png)
 
