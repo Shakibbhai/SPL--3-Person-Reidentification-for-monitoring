@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual Environment
+venv/
+.env
+
+# Model Weights
+*.pt
+*.pth
+
+# FAISS Index
+*.faiss
+
+# Metadata
+*.pkl
+
+# Dataset
+data/
+*.zip
+
+# Uploads
+uploads/
+
+# Generated Files
+evaluation_results.json
+stats.json
+
+# React
+frontend/node_modules/
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
