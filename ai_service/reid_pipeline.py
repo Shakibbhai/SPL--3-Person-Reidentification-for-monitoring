@@ -18,6 +18,7 @@ pathlib.Path.exists = _safe_path_exists
 import cv2
 import torch
 import numpy as np
+import faiss
 from typing import List, Tuple, Optional, Dict
 import time
 from collections import deque
@@ -181,6 +182,7 @@ class PersonReIDPipeline:
             # Map tracker ID to Gallery Identity if available
             if self.gallery_manager and self.gallery_manager.index.ntotal > 0:
                 query_emb = np.array([embedding]).astype(np.float32)
+                query_emb = query_emb / (np.linalg.norm(query_emb, axis=1, keepdims=True) + 1e-8)
                 faiss.normalize_L2(query_emb)
                 distances, indices = self.gallery_manager.index.search(query_emb, 1)
                 dist = float(distances[0][0])
