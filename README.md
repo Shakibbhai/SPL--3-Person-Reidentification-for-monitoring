@@ -121,13 +121,13 @@ PERCEPTA-ReIdentification-System
 Clone the repository
 
 ```bash
-git clone https://github.com/nihal3000/PERCEPTA-ReIdentification-System.git
+git clone https://github.com/Shakibbhai/SPL--3-Person-Reidentification-for-monitoring.git
 ```
 
 Move into the project
 
 ```bash
-cd PERCEPTA-ReIdentification-System
+cd SPL--3-Person-Reidentification-for-monitoring
 ```
 
 Install backend dependencies
@@ -198,14 +198,6 @@ npm run dev
 ## 📜 License
 
 This project is intended for educational and demonstration purposes.
-
----
-
-## 👩‍💻 Author
-
-**Md Nihal Hussain**
-
-GitHub: [https://github.com/nihal3000](https://github.com/nihal3000)
 
 ---
 
