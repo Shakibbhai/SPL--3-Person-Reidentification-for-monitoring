@@ -1,31 +1,31 @@
 # Re-ID System Configuration
 
-# Dynamic similarity thresholds per camera
-# Range: 0.0 (very permissive) to 1.0 (very strict)
-# Recommended: 0.40-0.60 for DINOv2
-
+# Calibrated similarity thresholds for LUPerson ViT-Base (256x128)
+# Measured empirical margin:
+# - Different persons: 0.30 - 0.38
+# - Same person across scenes/angles: 0.45 - 0.72
 THRESHOLDS = {
-    "video_tracking": 0.65,      # Within same camera: higher threshold = stricter
-    "cross_camera_reid": 0.50,   # Cross-camera matching: more lenient
-    "gallery_search": 0.55,      # Image gallery search: medium threshold
+    "video_tracking": 0.44,      # Within video re-identification
+    "cross_camera_reid": 0.44,   # Cross-camera matching
+    "gallery_search": 0.45,      # Image gallery search
 }
 
 # Camera configuration
 CAMERAS = {
-    "camera_1": {"name": "Source Camera", "reid_threshold": 0.50},
-    "camera_2": {"name": "Target Camera", "reid_threshold": 0.50},
+    "camera_1": {"name": "Source Camera", "reid_threshold": 0.44},
+    "camera_2": {"name": "Target Camera", "reid_threshold": 0.44},
 }
 
 # Confidence thresholds for track confirmation
-MIN_TRACK_LENGTH_FOR_GALLERY = 15  # Frames before adding to gallery
+MIN_TRACK_LENGTH_FOR_GALLERY = 10  # Frames before confirming gallery identity
 CONFIDENCE_DECAY_RATE = 0.95       # Per-frame decay for aged tracks
-MAX_TRACK_AGE = 90                 # Frames before removing track
+MAX_TRACK_AGE = 120                # Frames before moving active track to Re-ID memory
 
-# Identity Exemplar Storage (prevents duplicates and gallery clutter)
-MAX_EXEMPLARS_PER_IDENTITY = 5     # Store best N samples per person, not all crops
-EXEMPLAR_SAMPLING_INTERVAL = 10    # Frames between exemplar captures per track
-EXEMPLAR_DRIFT_THRESHOLD = 0.12    # L2 distance threshold for sampling new exemplar (avoid duplicates)
-CREATE_IDENTITY_THRESHOLD = 0.65   # Match confidence needed to assign to existing identity (not create new)
+# Identity Exemplar Storage (stores diverse templates per person for robust Re-ID)
+MAX_EXEMPLARS_PER_IDENTITY = 8     # Store best N diverse samples per person
+EXEMPLAR_SAMPLING_INTERVAL = 8     # Frames between exemplar captures per track
+EXEMPLAR_DRIFT_THRESHOLD = 0.10    # Minimum distance to sample a new angle/pose exemplar
+CREATE_IDENTITY_THRESHOLD = 0.44   # If similarity >= 0.44, merge with existing identity (don't duplicate)
 
 # File paths
 GALLERY_INDEX_PATH = "ai_service/video_gallery.faiss"

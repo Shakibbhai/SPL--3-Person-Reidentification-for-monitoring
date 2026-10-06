@@ -44,11 +44,11 @@ class FAISSPersonTracker:
     """
     
     def __init__(self, 
-                 embedding_dim: int = 512,
-                 max_age: int = 90,
+                 embedding_dim: int = 768,
+                 max_age: int = 120,
                  min_matches: int = 2,
-                 similarity_threshold: float = 0.7,
-                 reid_threshold: float = 0.50):
+                 similarity_threshold: float = 0.55,
+                 reid_threshold: float = 0.44):
         """
         Initialize FAISS tracker.
         
@@ -222,6 +222,43 @@ class FAISSPersonTracker:
                 bbox_to_id[bbox] = person_id
                 matched_person_ids.add(person_id)
         
+        # Stage 4: Deferred Re-Association for recently created tracks
+        # If an active track is newly spawned (track_len between 3 and 25 frames) with a high ID,
+        # verify if its accumulated embedding history matches an earlier person from reid_memory!
+        for person_id in list(self.tracked_persons.keys()):
+            person = self.tracked_persons.get(person_id)
+            if person and 3 <= person.track_len <= 25 and len(person.embedding_history) >= 3:
+                recent_embs = np.array(list(person.embedding_history)[-10:]).astype(np.float32)
+                recent_med = np.median(recent_embs, axis=0)
+                recent_med = recent_med / (np.linalg.norm(recent_med) + 1e-8)
+                
+                best_match_id = None
+                best_sim = self.reid_threshold
+                
+                for past_id, past_embs in self.reid_memory.items():
+                    if past_id in self.tracked_persons or past_id >= person_id:
+                        continue
+                    for pe in past_embs:
+                        sim = float(np.dot(recent_med, pe))
+                        if sim > best_sim:
+                            best_sim = sim
+                            best_match_id = past_id
+                
+                if best_match_id is not None and best_match_id not in matched_person_ids:
+                    # MERGE track back to original identity
+                    old_p = self.tracked_persons.pop(person_id)
+                    old_p.person_id = best_match_id
+                    self.tracked_persons[best_match_id] = old_p
+                    matched_person_ids.add(best_match_id)
+                    
+                    for b, pid in list(bbox_to_id.items()):
+                        if pid == person_id:
+                            bbox_to_id[b] = best_match_id
+                    
+                    # Merge historical memory
+                    if person_id in self.reid_memory:
+                        self.reid_memory[best_match_id].extend(self.reid_memory.pop(person_id))
+
         # Remove tracks that are too old
         self._remove_old_tracks()
         
@@ -299,23 +336,40 @@ class FAISSPersonTracker:
         if not unmatched_detections or not self.reid_memory:
             return assignments
         
-        # Build database from re-ID memory (all disappeared persons)
+        # Build database from re-ID memory with diverse exemplar templates per disappeared person
         database_embeddings = []
         person_ids_in_memory = []
         
         for person_id, embeddings in self.reid_memory.items():
             if person_id in self.tracked_persons:
-                # Skip active persons (already matched in _match_detections)
+                # Skip active persons (already matched in spatial or appearance stage)
                 continue
             
             if not embeddings:
                 continue
             
-            # Use average of stored embeddings for this disappeared person
-            avg_embedding = np.mean(np.array(embeddings), axis=0)
-            avg_embedding = avg_embedding / (np.linalg.norm(avg_embedding) + 1e-8)
-            database_embeddings.append(avg_embedding)
-            person_ids_in_memory.append(person_id)
+            embs_arr = np.array(embeddings).astype(np.float32)
+            embs_arr = embs_arr / (np.linalg.norm(embs_arr, axis=1, keepdims=True) + 1e-8)
+            
+            # Extract diverse view exemplars (first view, recent view, median, and distinct angle views)
+            chosen_embs = [embs_arr[0]]
+            if len(embs_arr) > 1:
+                chosen_embs.append(embs_arr[-1])
+            if len(embs_arr) >= 4:
+                median_emb = np.median(embs_arr, axis=0)
+                median_emb = median_emb / (np.linalg.norm(median_emb) + 1e-8)
+                chosen_embs.append(median_emb)
+            
+            # Add up to 5 additional distinct view samples (cosine distance > 0.10)
+            for e in embs_arr:
+                if len(chosen_embs) >= 8:
+                    break
+                if all(float(np.dot(e, ce)) < 0.90 for ce in chosen_embs):
+                    chosen_embs.append(e)
+            
+            for ce in chosen_embs:
+                database_embeddings.append(ce)
+                person_ids_in_memory.append(person_id)
         
         if not database_embeddings:
             return assignments

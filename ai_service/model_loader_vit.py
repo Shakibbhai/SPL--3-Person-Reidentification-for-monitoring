@@ -55,14 +55,14 @@ class ViTLUPersonModel(nn.Module):
                         state_dict = ckpt
                     
                     msg = self.model.load_state_dict(state_dict, strict=False)
-                    print(f"✓ [ViT-Base] Pretrained weights loaded successfully: {msg}")
+                    print(f"[ViT-Base] Pretrained weights loaded successfully: {msg}")
                     loaded = True
                     break
                 except Exception as e:
-                    print(f"⚠ [ViT-Base] Failed to load from {p}: {e}")
+                    print(f"[ViT-Base] Failed to load from {p}: {e}")
 
         if not loaded:
-            print("⚠ [ViT-Base] Notice: Checkpoint not found in paths. Running with initialized architecture.")
+            print("[ViT-Base] Notice: Checkpoint not found in paths. Running with initialized architecture.")
 
         self.model = self.model.to(device)
         self.model.eval()

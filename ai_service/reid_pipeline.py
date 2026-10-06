@@ -47,8 +47,8 @@ class PersonReIDPipeline:
                  model_weights: str,
                  num_classes: int = 751,
                  device: str = 'cuda',
-                 similarity_threshold: float = 0.65,
-                 max_age: int = 30,
+                 similarity_threshold: float = 0.44,
+                 max_age: int = 120,
                  use_yolo: bool = True,
                  yolo_model: str = 'yolov8x.pt',
                  gallery_manager=None,
@@ -89,11 +89,12 @@ class PersonReIDPipeline:
         
         # Initialize tracker
         print("[2/3] Initializing FAISS tracker...")
-        emb_dim = gallery_manager.embedding_dim if gallery_manager else 512
+        emb_dim = gallery_manager.embedding_dim if gallery_manager else 768
         self.tracker = FAISSPersonTracker(
             embedding_dim=emb_dim,
             max_age=max_age,
-            similarity_threshold=similarity_threshold
+            similarity_threshold=0.55,
+            reid_threshold=similarity_threshold
         )
         
         # Initialize YOLO detector
@@ -180,6 +181,7 @@ class PersonReIDPipeline:
             # Map tracker ID to Gallery Identity if available
             if self.gallery_manager and self.gallery_manager.index.ntotal > 0:
                 query_emb = np.array([embedding]).astype(np.float32)
+                faiss.normalize_L2(query_emb)
                 distances, indices = self.gallery_manager.index.search(query_emb, 1)
                 dist = float(distances[0][0])
                 idx = int(indices[0][0])
@@ -191,12 +193,18 @@ class PersonReIDPipeline:
                     if dist >= self.similarity_threshold and gallery_person_id not in assigned_gallery_ids:
                         self.tracker_to_gallery_map[person_id] = gallery_person_id
                         assigned_gallery_ids.add(gallery_person_id)
+                    elif person_id in self.tracker_to_gallery_map and self.tracker_to_gallery_map[person_id] not in assigned_gallery_ids:
+                        # STICKY: Maintain previously confirmed gallery identity across temporary frame fluctuations
+                        assigned_gallery_ids.add(self.tracker_to_gallery_map[person_id])
                     else:
-                        self.tracker_to_gallery_map[person_id] = f"PERSON_{person_id:04d}"
+                        if person_id not in self.tracker_to_gallery_map:
+                            self.tracker_to_gallery_map[person_id] = f"PERSON_{person_id:04d}"
                 else:
-                    self.tracker_to_gallery_map[person_id] = f"PERSON_{person_id:04d}"
+                    if person_id not in self.tracker_to_gallery_map:
+                        self.tracker_to_gallery_map[person_id] = f"PERSON_{person_id:04d}"
             else:
-                self.tracker_to_gallery_map[person_id] = f"PERSON_{person_id:04d}"
+                if person_id not in self.tracker_to_gallery_map:
+                    self.tracker_to_gallery_map[person_id] = f"PERSON_{person_id:04d}"
             
             display_text = self.tracker_to_gallery_map[person_id]
             if display_text in assigned_gallery_ids and display_text != f"PERSON_{person_id:04d}":
