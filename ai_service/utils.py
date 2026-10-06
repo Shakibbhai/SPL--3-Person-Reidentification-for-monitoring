@@ -126,54 +126,49 @@ def draw_bbox_with_id(frame: np.ndarray,
                        confidence: float = 1.0,
                        color: Tuple[int, int, int] = (0, 255, 0)) -> np.ndarray:
     """
-    Draw bounding box with person ID on frame.
-    
-    Args:
-        frame: Input frame
-        bbox: Bounding box (x1, y1, x2, y2)
-        person_id: Person ID to display
-        confidence: Confidence score (0-1)
-        color: Color in BGR format
-        
-    Returns:
-        Frame with drawn bbox and ID
+    Draw clean, high-contrast bounding box with person ID on frame.
     """
     x1, y1, x2, y2 = bbox
     
     # Draw bounding box
-    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 3)
+    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 3, cv2.LINE_AA)
     
-    # Prepare text
+    # Prepare clean text badge
     if confidence > 1.5:
-        text = f"ID: {person_id} [Spatial]"
+        text = f"{person_id}"
     else:
-        text = f"ID: {person_id} [FAISS: {confidence:.2f}]"
+        score_pct = int(min(confidence, 1.0) * 100)
+        text = f"{person_id} [{score_pct}%]"
     
     # Get text size
-    font_scale = 0.6
+    font_scale = 0.55
     thickness = 2
     (text_width, text_height), baseline = cv2.getTextSize(
         text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness
     )
     
-    # Draw background for text
+    # Draw background badge for text
+    badge_y1 = max(0, y1 - text_height - baseline - 6)
+    badge_y2 = y1
+    badge_x2 = min(frame.shape[1], x1 + text_width + 8)
     cv2.rectangle(
         frame,
-        (x1, y1 - text_height - baseline - 5),
-        (x1 + text_width + 5, y1),
+        (x1, badge_y1),
+        (badge_x2, badge_y2),
         color,
         -1
     )
     
-    # Draw text
+    # Draw crisp text
     cv2.putText(
         frame,
         text,
-        (x1 + 2, y1 - baseline - 2),
+        (x1 + 4, y1 - baseline - 2),
         cv2.FONT_HERSHEY_SIMPLEX,
         font_scale,
         (255, 255, 255),
-        thickness
+        thickness,
+        cv2.LINE_AA
     )
     
     return frame

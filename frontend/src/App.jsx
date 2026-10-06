@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, Upload, Camera, Search, Users, BarChart3, Database, 
   Settings, Moon, Sun, Video, UserCheck, Link2, ArrowUpRight, Loader2, Image as ImageIcon, Edit2
-} from 'lucide-react';
+, Maximize2, Minimize2 } from 'lucide-react';
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie as RechartsPie, Cell } from 'recharts';
 import './App.css';
 
@@ -15,11 +15,39 @@ function UploadView() {
   const [isProcessing1, setIsProcessing1] = useState(false);
   const [videoUrl1, setVideoUrl1] = useState(null);
   const fileInputRef1 = useRef(null);
+  const videoContainerRef1 = useRef(null);
+  const [isFullscreen1, setIsFullscreen1] = useState(false);
 
   const [selectedFile2, setSelectedFile2] = useState(null);
   const [isProcessing2, setIsProcessing2] = useState(false);
   const [videoUrl2, setVideoUrl2] = useState(null);
   const fileInputRef2 = useRef(null);
+  const videoContainerRef2 = useRef(null);
+  const [isFullscreen2, setIsFullscreen2] = useState(false);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen1(document.fullscreenElement === videoContainerRef1.current);
+      setIsFullscreen2(document.fullscreenElement === videoContainerRef2.current);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const toggleFullscreen = (containerRef, isFs) => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      if (containerRef.current.requestFullscreen) {
+        containerRef.current.requestFullscreen();
+      } else if (containerRef.current.webkitRequestFullscreen) {
+        containerRef.current.webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
 
   const handleFileSelect1 = (e) => {
     const file = e.target.files[0];
@@ -56,84 +84,216 @@ function UploadView() {
       
       const data = await response.json();
       setUrl(data.stream_url);
-      if (mode === 'source') setCameraAStatus('Gallery ready — Camera A identities are available for matching');
-      if (mode === 'target') setCameraBStatus('Streaming — Camera B is matching persons from Camera A');
+      if (mode === 'source') setCameraAStatus('Gallery ready — Camera A identities available');
+      if (mode === 'target') setCameraBStatus('Streaming — Matching persons from Camera A');
     } catch (error) {
       console.error(error);
       alert('Failed to upload video.');
       if (mode === 'source') setCameraAStatus('Upload failed');
       if (mode === 'target') setCameraBStatus('Upload failed');
     } finally {
-      // Keep "processing" true while it streams, or we can just set it to false and let the img tag handle it.
-      // Actually, since it's real-time, once we have the URL, we can turn off processing overlay.
       setProcessing(false);
     }
   };
 
-  const renderUploadControls = (title, subtitle, file, isProc, inputRef, handleSelect, handleUp) => (
-    <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '1rem', backgroundColor: 'var(--bg-primary)', padding: '1.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)' }}>
-      <div>
-        <h4 style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{title}</h4>
-        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{subtitle}</p>
-      </div>
+  const renderCompactControlBar = (title, file, isProc, inputRef, handleSelect, handleUp, containerRef, vUrl) => (
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'space-between',
+      gap: '1rem', 
+      backgroundColor: 'var(--bg-primary)', 
+      padding: '0.85rem 1.25rem', 
+      borderRadius: 'var(--radius-lg)', 
+      border: '1px solid var(--border-light)',
+      flexWrap: 'wrap'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+        <input type="file" ref={inputRef} onChange={handleSelect} accept="video/mp4,video/webm,video/avi" style={{ display: 'none' }} />
+        <button 
+          type="button"
+          className="btn-secondary" 
+          onClick={() => !isProc && inputRef.current?.click()}
+          disabled={isProc}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.55rem 1.1rem', fontWeight: 500 }}
+        >
+          <Upload size={17} />
+          <span>{file ? 'Change Video' : 'Select Video File'}</span>
+        </button>
 
-      <input type="file" ref={inputRef} onChange={handleSelect} accept="video/mp4,video/webm,video/avi" style={{ display: 'none' }} />
-      
-      <div className="upload-area" onClick={() => !isProc && inputRef.current?.click()} style={{ cursor: isProc ? 'not-allowed' : 'pointer', padding: '2rem 1rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         {file ? (
-          <>
-            <Video size={32} style={{ color: 'var(--primary-brand)', marginBottom: '0.5rem' }} />
-            <div className="upload-text" style={{ fontSize: '0.9rem' }}>{file.name}</div>
-            <div className="upload-subtext">{(file.size / (1024 * 1024)).toFixed(2)} MB</div>
-          </>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            background: 'var(--bg-secondary)', 
+            padding: '0.4rem 0.85rem', 
+            borderRadius: '8px', 
+            border: '1px solid var(--border-light)', 
+            fontSize: '0.875rem' 
+          }}>
+            <Video size={17} style={{ color: 'var(--primary-brand)' }} />
+            <span style={{ fontWeight: '600', maxWidth: '320px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>({(file.size / (1024 * 1024)).toFixed(1)} MB)</span>
+          </div>
         ) : (
-          <>
-            <Upload className="upload-icon" size={24} />
-            <div className="upload-text" style={{ fontSize: '0.9rem' }}>Select Video File</div>
-          </>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>No video selected</span>
         )}
       </div>
-      
-      <button 
-        className="btn-primary" 
-        style={{ width: '100%', display: 'flex', justifyContent: 'center', gap: '8px', padding: '0.8rem', fontSize: '0.95rem' }} 
-        onClick={handleUp} 
-        disabled={!file || isProc}
-      >
-        {isProc ? <Loader2 className="animate-spin" size={18} /> : <Camera size={18} />}
-        {isProc ? 'Processing Video...' : 'Process Video'}
-      </button>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <button 
+          className="btn-primary" 
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.55rem 1.35rem', fontSize: '0.925rem', fontWeight: 600 }} 
+          onClick={handleUp} 
+          disabled={!file || isProc}
+        >
+          {isProc ? <Loader2 className="animate-spin" size={17} /> : <Camera size={17} />}
+          {isProc ? 'Processing Live Stream...' : 'Start Re-ID Surveillance'}
+        </button>
+
+        {vUrl && (
+          <button 
+            type="button"
+            className="btn-secondary"
+            title="Toggle Fullscreen"
+            onClick={() => toggleFullscreen(containerRef)}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0.55rem 0.9rem' }}
+          >
+            <Maximize2 size={17} />
+            <span>Fullscreen</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 
-  const renderVideoPlayer = (vUrl, isProc, placeholderTitle, placeholderDesc) => (
-    <div style={{ flex: '2', backgroundColor: '#0f172a', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', minHeight: '450px', border: '1px solid var(--border-light)' }}>
+  const renderFullscreenVideoPlayer = (vUrl, isProc, placeholderTitle, placeholderDesc, containerRef, isFs) => (
+    <div 
+      ref={containerRef}
+      onDoubleClick={() => vUrl && toggleFullscreen(containerRef)}
+      style={{ 
+        width: '100%', 
+        backgroundColor: '#030712', 
+        borderRadius: isFs ? '0px' : 'var(--radius-lg)', 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        overflow: 'hidden', 
+        minHeight: isFs ? '100vh' : '650px', 
+        height: isFs ? '100vh' : 'calc(80vh - 120px)',
+        maxHeight: isFs ? '100vh' : '880px',
+        border: isFs ? 'none' : '1px solid var(--border-light)',
+        position: 'relative',
+        boxShadow: isFs ? 'none' : '0 12px 35px rgba(0,0,0,0.4)',
+        transition: 'all 0.3s ease'
+      }}
+    >
+      {/* Floating Control Bar Overlay on Video */}
+      {vUrl && (
+        <div style={{ 
+          position: 'absolute', 
+          top: '16px', 
+          left: '20px', 
+          right: '20px', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          zIndex: 10,
+          pointerEvents: 'none'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            background: 'rgba(15, 23, 42, 0.82)', 
+            backdropFilter: 'blur(10px)',
+            padding: '7px 14px', 
+            borderRadius: '24px',
+            border: '1px solid rgba(255,255,255,0.12)',
+            color: '#fff',
+            fontSize: '0.825rem',
+            fontWeight: 600,
+            pointerEvents: 'auto',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+          }}>
+            <span style={{ 
+              width: '8px', 
+              height: '8px', 
+              borderRadius: '50%', 
+              background: '#22c55e', 
+              display: 'inline-block', 
+              boxShadow: '0 0 10px #22c55e' 
+            }} />
+            <span>LIVE RE-ID FEED</span>
+            <span style={{ color: '#94a3b8', fontSize: '0.75rem', marginLeft: '4px' }}>| LUPerson ViT & YOLOv8-X</span>
+          </div>
+
+          <button 
+            type="button"
+            onClick={() => toggleFullscreen(containerRef)}
+            style={{ 
+              background: 'rgba(15, 23, 42, 0.82)', 
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: '#fff',
+              cursor: 'pointer',
+              padding: '7px 14px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.825rem',
+              fontWeight: 500,
+              pointerEvents: 'auto',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+            }}
+          >
+            {isFs ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            <span>{isFs ? 'Exit Fullscreen (Esc)' : 'Fullscreen'}</span>
+          </button>
+        </div>
+      )}
+
       {vUrl ? (
-        <img src={vUrl} alt="Live Stream" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <img 
+          src={vUrl} 
+          alt="Live Stream" 
+          style={{ 
+            width: '100%', 
+            height: '100%', 
+            objectFit: 'contain',
+            userSelect: 'none'
+          }} 
+        />
       ) : isProc ? (
-        <div style={{ textAlign: 'center', color: '#94a3b8' }}>
-          <Loader2 className="animate-spin" size={48} style={{ opacity: 0.5, margin: '0 auto 1rem auto' }} />
-          <p style={{ fontSize: '1rem' }}>Initializing AI Engine...</p>
+        <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2rem' }}>
+          <Loader2 className="animate-spin" size={60} style={{ opacity: 0.7, margin: '0 auto 1.5rem auto', color: 'var(--primary-brand)' }} />
+          <h4 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#f1f5f9' }}>Initializing LUPerson ViT & YOLOv8-X Engine...</h4>
+          <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.5rem', maxWidth: '420px', margin: '0.5rem auto 0 auto' }}>
+            Allocating Vision Transformer feature extractors and YOLOv8-X on NVIDIA GeForce RTX 3090 GPU...
+          </p>
         </div>
       ) : (
-        <div style={{ textAlign: 'center', color: '#475569', padding: '2rem' }}>
-          <Video size={56} style={{ opacity: 0.3, margin: '0 auto 1rem auto' }} />
-          <h3 style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>{placeholderTitle}</h3>
-          <p style={{ fontSize: '0.875rem', maxWidth: '400px', margin: '0 auto', lineHeight: '1.5' }}>{placeholderDesc}</p>
+        <div style={{ textAlign: 'center', color: '#475569', padding: '4rem 2rem' }}>
+          <Video size={72} style={{ opacity: 0.2, margin: '0 auto 1.5rem auto', color: '#94a3b8' }} />
+          <h3 style={{ color: '#e2e8f0', marginBottom: '0.75rem', fontSize: '1.35rem', fontWeight: 600 }}>{placeholderTitle}</h3>
+          <p style={{ fontSize: '0.925rem', color: '#94a3b8', maxWidth: '520px', margin: '0 auto', lineHeight: '1.6' }}>{placeholderDesc}</p>
         </div>
       )}
     </div>
   );
 
   return (
-    <div className="panel" style={{ minHeight: '600px' }}>
-      <div className="panel-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div className="panel" style={{ minHeight: '650px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div className="panel-header" style={{ marginBottom: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h3 className="panel-title">Video Tracking Engine</h3>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.5rem', maxWidth: '600px', lineHeight: '1.5' }}>
+          <h3 className="panel-title" style={{ fontSize: '1.35rem' }}>Video Tracking & Re-Identification Engine</h3>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem', maxWidth: '650px', lineHeight: '1.5' }}>
             {trackingMode === 'continuous' 
-              ? "Single Camera Mode: Continuously tracks people, saves them to the gallery, and automatically re-identifies them if they return to the frame."
-              : "Dual Camera Mode: Upload your baseline video to Camera A to populate the identity gallery, then upload your secondary video to Camera B to test cross-camera Re-ID."}
+              ? "Single Camera Mode: Real-time person detection (YOLOv8-X) and re-identification (LUPerson ViT-Base) with continuous gallery population."
+              : "Dual Camera Mode: Upload baseline video to Camera A to populate identities, then run Camera B to evaluate cross-camera matching."}
           </p>
         </div>
         <div className="search-tabs" style={{ marginBottom: 0 }}>
@@ -143,62 +303,76 @@ function UploadView() {
       </div>
 
       {trackingMode === 'continuous' ? (
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'stretch' }}>
-          <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
-            {renderUploadControls(
-              "Continuous Surveillance", 
-              "Upload a video to track and build the identity gallery automatically.", 
-              selectedFile1, isProcessing1, fileInputRef1, handleFileSelect1, 
-              () => handleUpload(selectedFile1, setIsProcessing1, setVideoUrl1, 'continuous')
-            )}
-          </div>
-          
-          {renderVideoPlayer(
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+          {renderCompactControlBar(
+            "Continuous Surveillance",
+            selectedFile1,
+            isProcessing1,
+            fileInputRef1,
+            handleFileSelect1,
+            () => handleUpload(selectedFile1, setIsProcessing1, setVideoUrl1, 'continuous'),
+            videoContainerRef1,
+            videoUrl1
+          )}
+
+          {renderFullscreenVideoPlayer(
             videoUrl1, 
             isProcessing1, 
-            "Single Camera Mode Active", 
-            "Upload a video on the left. The Re-ID engine will assign an ID to every new person, save their median crops, and automatically re-identify them later!"
+            "Cinema View Ready", 
+            "Select your surveillance video file above and click 'Start Re-ID Surveillance'. The video player expands across the full display with crystal-clear person tracking and re-identification bounding boxes.",
+            videoContainerRef1,
+            isFullscreen1
           )}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'stretch' }}>
-            {renderUploadControls(
-              "Camera A - Source", 
-              "Populate the identity gallery from this camera stream.", 
-              selectedFile1, isProcessing1, fileInputRef1, handleFileSelect1, 
-              () => handleUpload(selectedFile1, setIsProcessing1, setVideoUrl1, 'source')
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
+            {renderCompactControlBar(
+              "Camera A - Source",
+              selectedFile1,
+              isProcessing1,
+              fileInputRef1,
+              handleFileSelect1,
+              () => handleUpload(selectedFile1, setIsProcessing1, setVideoUrl1, 'source'),
+              videoContainerRef1,
+              videoUrl1
             )}
-            
-            {renderUploadControls(
-              "Camera B - Target Matcher", 
-              "Test cross-camera Re-ID against identities found in Camera A.", 
-              selectedFile2, isProcessing2, fileInputRef2, handleFileSelect2, 
-              () => handleUpload(selectedFile2, setIsProcessing2, setVideoUrl2, 'target')
+            {renderCompactControlBar(
+              "Camera B - Target Matcher",
+              selectedFile2,
+              isProcessing2,
+              fileInputRef2,
+              handleFileSelect2,
+              () => handleUpload(selectedFile2, setIsProcessing2, setVideoUrl2, 'target'),
+              videoContainerRef2,
+              videoUrl2
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'stretch' }}>
-            {renderVideoPlayer(
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '1.25rem' }}>
+            {renderFullscreenVideoPlayer(
               videoUrl1, 
               isProcessing1, 
               "Camera A Feed", 
-              "Source gallery building stream will appear here."
+              "Source gallery building stream will appear here in high-resolution.",
+              videoContainerRef1,
+              isFullscreen1
             )}
-            {renderVideoPlayer(
+            {renderFullscreenVideoPlayer(
               videoUrl2, 
               isProcessing2, 
               "Camera B Feed", 
-              "Target matcher stream will appear here."
+              "Cross-camera matcher stream will appear here in high-resolution.",
+              videoContainerRef2,
+              isFullscreen2
             )}
           </div>
 
-          {/* Dual mode connection diagram */}
-          <div style={{ marginTop: '0.5rem', display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '1rem', alignItems: 'center' }}>
+          <div style={{ marginTop: '0.25rem', display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '1rem', alignItems: 'center' }}>
             <div className="match-flow-card">
               <div className="match-flow-eyebrow">Camera A</div>
               <div className="match-flow-title">Source Gallery</div>
-              <div className="match-flow-text">Builds identities from the first camera stream.</div>
+              <div className="match-flow-text">Extracts 768-dim LUPerson ViT embeddings from the first camera.</div>
               <div className="match-flow-status">{cameraAStatus}</div>
             </div>
             <div className="match-flow-connector">
@@ -207,7 +381,7 @@ function UploadView() {
             <div className="match-flow-card match-flow-card-target">
               <div className="match-flow-eyebrow">Camera B</div>
               <div className="match-flow-title">Target Matcher</div>
-              <div className="match-flow-text">Labels persons as matched from Camera A when similarity passes the threshold.</div>
+              <div className="match-flow-text">Performs real-time cosine distance matching against Camera A identities.</div>
               <div className="match-flow-status">{cameraBStatus}</div>
             </div>
           </div>
