@@ -267,7 +267,7 @@ class VideoGalleryManager(BaseGalleryManager):
     """Uses Trained DINOv3 or ONNX DINOv2 for robust tracking with exemplar-based identity storage."""
     def __init__(self, index_path: str = "video_gallery.faiss", meta_path: str = "video_meta.pkl", device: str = None, camera_id: str = None):
         device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
-        super().__init__(index_path, meta_path, 384 if device == 'cpu' else 512, device, camera_id=camera_id)
+        super().__init__(index_path, meta_path, 384 if device == 'cpu' else 768, device, camera_id=camera_id)
         # provenance
         self.match_threshold = 0.65  # Confidence for matching existing identities
         self.max_exemplars = 5       # Max exemplar crops per identity
@@ -278,16 +278,15 @@ class VideoGalleryManager(BaseGalleryManager):
             self.model = load_onnx_reid_model()
             self.model_type = "dinov2_onnx"
             self.embedding_dim = 384
-            # Update index dimension if needed
             self.index = faiss.IndexFlatIP(384)
         else:
-            print(f"Loading Trained DINOv3 for Video Tracking on {device}...")
-            self.model_type = "dinov3"
-            pth_path = os.path.join(os.path.dirname(__file__), "net_last.pth")
-            if not os.path.exists(pth_path):
-                pth_path = os.path.join(os.path.dirname(__file__), "..", "oracle_best.pth")
-            self.model = load_v3(model_path=pth_path, device=device)
-            self.model.eval()
+            print(f"Loading LUPerson ViT-Base (checkpoint0260) for Video Tracking on {device}...")
+            self.model_type = "vit_base_luperson"
+            from model_loader_vit import ViTLUPersonModel
+            vit_ckpt = os.path.join(os.path.dirname(__file__), "..", "vit_base_checkpoint0260.pth")
+            self.model = ViTLUPersonModel(model_path=vit_ckpt, device=device)
+            self.embedding_dim = 768
+            self.index = faiss.IndexFlatIP(768)
 
     def extract_feature(self, image: np.ndarray) -> np.ndarray:
         target_sz = (252, 126) if getattr(self, 'model_type', '') == 'dinov2_onnx' else (256, 128)
@@ -310,7 +309,7 @@ class ImageGalleryManager(BaseGalleryManager):
     """Uses ONNX / PyTorch DINO for Top-K static image search."""
     def __init__(self, model_weights: str, index_path: str = "image_gallery.faiss", meta_path: str = "image_meta.pkl", device: str = None, camera_id: str = None):
         device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
-        super().__init__(index_path, meta_path, 384 if device == 'cpu' else 512, device, camera_id=camera_id)
+        super().__init__(index_path, meta_path, 384 if device == 'cpu' else 768, device, camera_id=camera_id)
         # provenance
         self.match_threshold = 0.55  # Stricter threshold for image search
         self.max_exemplars = 3       # Fewer exemplars for static images
@@ -323,10 +322,13 @@ class ImageGalleryManager(BaseGalleryManager):
             self.embedding_dim = 384
             self.index = faiss.IndexFlatIP(384)
         else:
-            print(f"Loading DINOv3 for Image Search on {device}...")
-            self.model_type = "dinov3"
-            self.model = load_v3(model_weights, device=device)
-            self.model.eval()
+            print(f"Loading LUPerson ViT-Base (checkpoint0260) for Image Search on {device}...")
+            self.model_type = "vit_base_luperson"
+            from model_loader_vit import ViTLUPersonModel
+            vit_ckpt = os.path.join(os.path.dirname(__file__), "..", "vit_base_checkpoint0260.pth")
+            self.model = ViTLUPersonModel(model_path=vit_ckpt, device=device)
+            self.embedding_dim = 768
+            self.index = faiss.IndexFlatIP(768)
 
     def extract_feature(self, image: np.ndarray) -> np.ndarray:
         target_sz = (252, 126) if getattr(self, 'model_type', '') == 'dinov2_onnx' else (256, 128)
