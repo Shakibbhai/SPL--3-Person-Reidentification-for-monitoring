@@ -50,7 +50,7 @@ class PersonReIDPipeline:
                  similarity_threshold: float = 0.65,
                  max_age: int = 30,
                  use_yolo: bool = True,
-                 yolo_model: str = 'yolov8n.pt',
+                 yolo_model: str = 'yolov8x.pt',
                  gallery_manager=None,
                  camera_id: str = None):
         """
@@ -433,13 +433,18 @@ class PersonReIDPipeline:
 
     def process_video_stream(self, video_path: str, max_frames: int = None):
         """
-        Process video and yield JPEG frames continuously for real-time streaming.
+        Process video and yield JPEG frames continuously with paced real-time streaming.
         """
         cap = cv2.VideoCapture(video_path)
+        video_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+        # Target pacing interval (clamp between 20 and 30 FPS for smooth browser rendering)
+        target_fps = max(20.0, min(30.0, video_fps))
+        frame_interval = 1.0 / target_fps
         frame_count = 0
         
         try:
             while True:
+                t_start = time.time()
                 ret, frame = cap.read()
                 if not ret:
                     break
@@ -449,12 +454,26 @@ class PersonReIDPipeline:
                 results = self.process_frame(frame, frame_id=frame_count)
                 annotated_frame = results['frame']
                 
-                # Encode frame to JPEG
-                ret, buffer = cv2.imencode('.jpg', annotated_frame)
+                # Optimize resolution for web streaming if larger than 720p to eliminate network lag
+                h, w = annotated_frame.shape[:2]
+                if w > 1280:
+                    stream_img = cv2.resize(annotated_frame, (1280, int(h * 1280 / w)))
+                else:
+                    stream_img = annotated_frame
+                
+                # Encode frame to JPEG with optimal streaming compression
+                encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 80]
+                ret, buffer = cv2.imencode('.jpg', stream_img, encode_param)
                 if ret:
                     yield buffer.tobytes()
                     
                 frame_count += 1
+
+                # Frame pacing to ensure butter-smooth real-time playback
+                t_elapsed = time.time() - t_start
+                sleep_sec = frame_interval - t_elapsed
+                if sleep_sec > 0:
+                    time.sleep(sleep_sec)
         finally:
             cap.release()
         print(f"Total unique persons tracked: {self.tracker.next_person_id}")

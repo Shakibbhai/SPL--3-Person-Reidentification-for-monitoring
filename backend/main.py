@@ -408,6 +408,7 @@ async def stream_video(filename: str, mode: str, camera_id: str = "camera_1", th
         device=video_manager.device,
         gallery_manager=video_manager,
         use_yolo=True,
+        yolo_model=os.environ.get("YOLO_MODEL", "yolov8x.pt"),
         similarity_threshold=threshold,
         camera_id=camera_id
     )
@@ -418,7 +419,7 @@ async def stream_video(filename: str, mode: str, camera_id: str = "camera_1", th
         added_persons = set()  # Track which persons have been added to gallery
         
         frame_count = 0
-        for frame_bytes in pipeline.process_video_stream(input_path, max_frames=250):
+        for frame_bytes in pipeline.process_video_stream(input_path, max_frames=600):
             # Exemplar-based gallery population with frame interval sampling
             if mode in ["source", "continuous"]:
                 for person_id, person in pipeline.tracker.tracked_persons.items():
