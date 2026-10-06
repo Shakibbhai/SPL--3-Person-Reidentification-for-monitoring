@@ -48,7 +48,7 @@ function UploadView() {
     formData.append('mode', mode);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/video/upload', {
+      const response = await fetch('/api/video/upload', {
         method: 'POST',
         body: formData,
       });
@@ -221,7 +221,7 @@ function DashboardView({ stats }) {
   const [identities, setIdentities] = useState([]);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/identities/video/grouped')
+    fetch('/api/identities/video/grouped')
       .then(res => res.json())
       .then(data => {
         if (data.identities) {
@@ -357,7 +357,7 @@ function ImageRankingView() {
     formData.append('top_k', 5);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/search', {
+      const response = await fetch('/api/search', {
         method: 'POST',
         body: formData,
       });
@@ -448,7 +448,7 @@ function ImageRankingView() {
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)'
                     }}
                   >
-                    <div style={{ flex: 1, minHeight: '180px', backgroundImage: `url(http://127.0.0.1:8000/api/image?path=${encodeURIComponent(match.image_path)})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
+                    <div style={{ flex: 1, minHeight: '180px', backgroundImage: `url(/api/image?path=${encodeURIComponent(match.image_path)})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' }}>
                       <div style={{ position: 'absolute', top: '8px', left: '8px', backgroundColor: 'rgba(0,0,0,0.8)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid rgba(255,255,255,0.2)' }}>
                         Rank {i+1}
                       </div>
@@ -497,7 +497,7 @@ function IdentitiesView() {
   const [editName, setEditName] = useState('');
 
   const fetchIdentities = () => {
-    fetch('http://127.0.0.1:8000/api/identities')
+    fetch('/api/identities')
       .then(res => res.json())
       .then(data => {
         setIdentities(data.identities || []);
@@ -512,14 +512,14 @@ function IdentitiesView() {
   const fetchVideoIdentities = async () => {
     setVideoLoading(true);
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/identities/video/grouped');
+      const res = await fetch('/api/identities/video/grouped');
       if (!res.ok) throw new Error('Failed to fetch video identities');
       const data = await res.json();
       const list = data.identities || [];
 
       const detailed = await Promise.all(list.map(async (it) => {
         try {
-          const r = await fetch(`http://127.0.0.1:8000/api/identities/video/${it.uuid}/exemplars`);
+          const r = await fetch(`/api/identities/video/${it.uuid}/exemplars`);
           if (!r.ok) return { ...it, exemplars: [] };
           const d = await r.json();
           return { ...it, exemplars: d.exemplars || [] };
@@ -553,7 +553,7 @@ function IdentitiesView() {
     formData.append('name', newName);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/identities', {
+      const response = await fetch('/api/identities', {
         method: 'POST',
         body: formData,
       });
@@ -583,7 +583,7 @@ function IdentitiesView() {
       const formData = new FormData();
       formData.append('person_id', editName);
       formData.append('name', ''); 
-      const response = await fetch(`http://127.0.0.1:8000/api/identities/video/${person.uuid}`, {
+      const response = await fetch(`/api/identities/video/${person.uuid}`, {
         method: 'PUT',
         body: formData
       });
@@ -673,7 +673,7 @@ function IdentitiesView() {
               {identities.map((person) => (
                 <div key={person.id} style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', overflow: 'hidden', backgroundColor: 'var(--bg-primary)' }}>
               {person.image_path ? (
-                <div style={{ height: '180px', backgroundImage: `url(http://127.0.0.1:8000/api/image?path=${encodeURIComponent(person.image_path)})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+                <div style={{ height: '180px', backgroundImage: `url(/api/image?path=${encodeURIComponent(person.image_path)})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
               ) : (
                 <div style={{ height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', color: 'var(--text-secondary)' }}>No Image</div>
               )}
@@ -708,7 +708,7 @@ function IdentitiesView() {
                     <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', position: 'relative' }}>
                       {person.exemplars && person.exemplars.length > 0 ? (
                         <>
-                          <img src={`http://127.0.0.1:8000/api/image?path=${encodeURIComponent(person.exemplars[0].image_path)}`} alt="exemplar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={`/api/image?path=${encodeURIComponent(person.exemplars[0].image_path)}`} alt="exemplar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '40px', background: 'linear-gradient(to top, rgba(15,23,42,0.9), transparent)' }}></div>
                         </>
                       ) : (
@@ -757,7 +757,7 @@ function IdentitiesView() {
                         </span>
                         
                         <button 
-                          onClick={() => window.open(`http://127.0.0.1:8000/api/identities/video/${person.uuid}/exemplars`, '_blank')}
+                          onClick={() => window.open(`/api/identities/video/${person.uuid}/exemplars`, '_blank')}
                           style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)', border: '1px solid rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: '999px', fontSize: '0.75rem', cursor: 'pointer', transition: 'all 0.2s' }}
                           onMouseOver={(e) => { e.target.style.backgroundColor = 'var(--primary-brand)'; e.target.style.color = 'white'; e.target.style.borderColor = 'var(--primary-brand)'; }}
                           onMouseOut={(e) => { e.target.style.backgroundColor = 'rgba(255,255,255,0.05)'; e.target.style.color = 'var(--text-primary)'; e.target.style.borderColor = 'rgba(255,255,255,0.15)'; }}
@@ -803,7 +803,7 @@ function SettingsView() {
   }, []);
 
   const fetchConfig = () => {
-    fetch('http://127.0.0.1:8000/api/config')
+    fetch('/api/config')
       .then(res => res.json())
       .then(data => {
         setConfig(data);
@@ -820,7 +820,7 @@ function SettingsView() {
     setFeedback({ [key]: 'Updating...' });
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/config/threshold?key=${key}&value=${value}`, {
+      const response = await fetch(`/api/config/threshold?key=${key}&value=${value}`, {
         method: 'POST'
       });
       
@@ -851,7 +851,7 @@ function SettingsView() {
 
     setResetting(true);
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/reset', {
+      const response = await fetch('/api/reset', {
         method: 'POST'
       });
       if (!response.ok) throw new Error('Reset failed');
@@ -1121,7 +1121,7 @@ function DatasetsView() {
     setIsImporting(true);
     setImportStatus("Importing in background...");
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/datasets/import", {
+      const response = await fetch("/api/datasets/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1210,7 +1210,7 @@ function AnalyticsView() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/analytics')
+    fetch('/api/analytics')
       .then(res => res.json())
       .then(data => {
         if (data.status === 'pending') {
@@ -1384,7 +1384,7 @@ function App() {
 
   useEffect(() => {
     // Fetch stats on load
-    fetch('http://127.0.0.1:8000/api/stats')
+    fetch('/api/stats')
       .then(res => res.json())
       .then(data => setStats(data))
       .catch(err => console.error(err));

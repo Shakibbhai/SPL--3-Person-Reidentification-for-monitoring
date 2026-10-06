@@ -1,0 +1,40 @@
+name: Percepta-ReID GPU CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, percepta-reid ]
+  pull_request:
+    branches: [ main, percepta-reid ]
+  workflow_dispatch:
+
+jobs:
+  gpu-verify-and-deploy:
+    name: GPU Verification & Auto-Deploy
+    runs-on: self-hosted
+
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Configure Environment Path
+        run: |
+          if [ -d "/venv/main/bin" ]; then
+            echo "/venv/main/bin" >> $GITHUB_PATH
+            export PATH="/venv/main/bin:$PATH"
+          fi
+
+      - name: 🖥️ Inspect GPU Hardware & CUDA Runtime
+        run: |
+          nvidia-smi
+          python -c "import torch; print(f'CUDA Available: {torch.cuda.is_available()}'); print(f'Device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"None\"}')"
+
+      - name: 📦 Sync Dependencies
+        run: |
+          if [ -f "backend/requirements.txt" ]; then
+            python -m pip install -r backend/requirements.txt
+          fi
+
+      - name: 🌐 Deploy Percepta-ReID Service
+        run: |
+          chmod +x deploy.sh
+          ./deploy.sh

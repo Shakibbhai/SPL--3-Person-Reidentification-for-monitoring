@@ -166,7 +166,7 @@ def _strip_prefix_if_present(state_dict, prefix: str):
 
 
 def load_pretrained_model(
-    model_path: str,
+    model_path: str = None,
     num_classes: int = 751,
     device: str = "cuda",
     strict: bool = False,
@@ -174,19 +174,16 @@ def load_pretrained_model(
 ) -> DINoV3ReIDModel:
     model = DINoV3ReIDModel(num_classes=num_classes, **kwargs)
 
-    if not model_path or not Path(model_path).exists():
-        raise FileNotFoundError(
-            f"Checkpoint not found: {model_path}. Please provide valid net_last.pth path."
-        )
-
-    print(f"Loading trained weights from {model_path} ...")
-    checkpoint = torch.load(model_path, map_location="cpu")
-    state_dict = _unwrap_checkpoint_state_dict(checkpoint)
-
-    state_dict = _strip_prefix_if_present(state_dict, "module.")
-
-    model.load_state_dict(state_dict, strict=strict)
+    if model_path and Path(model_path).exists():
+        print(f"Loading trained weights from {model_path} ...")
+        checkpoint = torch.load(model_path, map_location="cpu")
+        state_dict = _unwrap_checkpoint_state_dict(checkpoint)
+        state_dict = _strip_prefix_if_present(state_dict, "module.")
+        model.load_state_dict(state_dict, strict=strict)
+    else:
+        print(f"[Notice] Checkpoint '{model_path}' not found. Initialized model architecture for inference.")
     
     model = model.to(device)
     model.eval()
     return model
+

@@ -37,3 +37,11 @@ frontend/node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+# Large binaries & models
+*.onnx
+*.mp4
+*.avi
+*.mkv
+scratch/
+backend/uploads/

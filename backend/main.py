@@ -1,8 +1,19 @@
+import pathlib
+import os
+
+# Fix for Windows Store Python ACL permissions bug on parent directory traversal in ultralytics
+_orig_path_exists = pathlib.Path.exists
+def _safe_path_exists(self):
+    try:
+        return _orig_path_exists(self)
+    except OSError:
+        return False
+pathlib.Path.exists = _safe_path_exists
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import sys
-import os
 import shutil
 import cv2
 import numpy as np
@@ -97,10 +108,9 @@ def reset_gallery_state():
         "image_gallery_size": image_manager.index.ntotal
     }
 
-@app.get("/")
-def read_root():
-    # Health check endpoint
-    return {"status": "ok", "message": "Re-ID API is running"}
+@app.get("/api/health")
+def read_health():
+    return {"status": "ok", "message": "Percepta-ReID API is running", "device": getattr(video_manager, 'device', 'unknown')}
 
 @app.get("/api/config")
 def get_config():
@@ -368,7 +378,7 @@ async def upload_video(
         
     return {
         "status": "success", 
-        "stream_url": f"http://127.0.0.1:8000/api/video/stream?filename={file.filename}&mode={mode}&camera_id={camera_id}&threshold={threshold}"
+        "stream_url": f"/api/video/stream?filename={file.filename}&mode={mode}&camera_id={camera_id}&threshold={threshold}"
     }
 
 @app.get("/api/video/stream")
@@ -466,5 +476,22 @@ async def get_video(filename: str):
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Video not found")
     return FileResponse(path)
+
+
+frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+if os.path.exists(frontend_dist):
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
+else:
+    @app.get("/")
+    def read_root():
+        return {"status": "ok", "message": "Percepta-ReID API is running"}
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 10100))
+    host = os.environ.get("HOST", "0.0.0.0")
+    uvicorn.run("main:app", host=host, port=port, reload=False)
+
 
 

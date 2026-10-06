@@ -210,3 +210,23 @@ GitHub: [https://github.com/nihal3000](https://github.com/nihal3000)
 ---
 
 ⭐ If you found this project useful, consider giving it a star!
+
+
+🚀 Project Status: Running Successfully
+Both the Backend and Frontend servers have been started and are active:
+
+Frontend Dashboard: http://localhost:5173/
+Backend API (FastAPI): http://127.0.0.1:8000/
+API Documentation (Swagger UI): http://127.0.0.1:8000/docs
+
+. 🛠️ How to Stop or Rerun Manually
+If you need to start the services in the future from terminal:
+
+Start Backend:
+bash
+cd backend
+python main.py
+Start Frontend:
+bash
+cd frontend
+npm run dev

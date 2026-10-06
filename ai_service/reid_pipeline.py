@@ -3,10 +3,21 @@ End-to-End Real-Time Person Re-ID Pipeline
 Integrates detection, feature extraction, and tracking
 """
 
+import pathlib
+import os
+
+# Fix for Windows Store Python ACL permissions bug on parent directory traversal in ultralytics
+_orig_path_exists = pathlib.Path.exists
+def _safe_path_exists(self):
+    try:
+        return _orig_path_exists(self)
+    except OSError:
+        return False
+pathlib.Path.exists = _safe_path_exists
+
 import cv2
 import torch
 import numpy as np
-from pathlib import Path
 from typing import List, Tuple, Optional, Dict
 import time
 from collections import deque
@@ -91,11 +102,16 @@ class PersonReIDPipeline:
         if use_yolo:
             try:
                 from ultralytics import YOLO
-                self.detector = YOLO(yolo_model)
+                yolo_path = yolo_model
+                if not os.path.exists(yolo_path):
+                    root_yolo = os.path.join(os.path.dirname(__file__), "..", yolo_model)
+                    if os.path.exists(root_yolo):
+                        yolo_path = root_yolo
+                self.detector = YOLO(yolo_path)
                 self.detector.to(device)
-                print(f"✓ YOLO loaded: {yolo_model}")
-            except ImportError:
-                print("⚠ YOLO not available, will use mock detections")
+                print(f"✓ YOLO loaded: {yolo_path}")
+            except Exception as e:
+                print(f"⚠ YOLO loading error: {e}, will use mock detections")
                 self.detector = None
         else:
             self.detector = None
@@ -183,6 +199,9 @@ class PersonReIDPipeline:
                 self.tracker_to_gallery_map[person_id] = f"PERSON_{person_id:04d}"
             
             display_text = self.tracker_to_gallery_map[person_id]
+            if display_text in assigned_gallery_ids and display_text != f"PERSON_{person_id:04d}":
+                display_text = f"PERSON_{person_id:04d}"
+            assigned_gallery_ids.add(display_text)
             
             # Get confidence from tracker
             person = self.tracker.tracked_persons.get(person_id)
@@ -254,8 +273,8 @@ class PersonReIDPipeline:
             return []
         
         try:
-            # YOLO inference
-            results = self.detector(frame, conf=0.7, classes=0, verbose=False)  # class 0 = person
+            # YOLO inference with standard confidence threshold (0.25) to detect all people
+            results = self.detector(frame, conf=0.25, imgsz=640, classes=0, verbose=False)  # class 0 = person
             
             bboxes = []
             for result in results:
@@ -301,19 +320,25 @@ class PersonReIDPipeline:
         
         # Convert crops to tensors
         input_tensors = []
+        target_sz = (252, 126) if hasattr(self.model, 'session') else (256, 128)
+        input_tensors = []
         for crop in person_crops:
-            tensor = resize_and_normalize(crop, target_size=(256, 128))
+            tensor = resize_and_normalize(crop, target_size=target_sz)
             input_tensors.append(tensor)
         
         # Extract features in batch
         try:
-            with torch.no_grad():
-                batch = torch.cat(input_tensors, dim=0)
-                if batch.is_cuda or self.device == 'cuda':
-                    batch = batch.to(self.device)
-                
+            batch = torch.cat(input_tensors, dim=0)
+            if hasattr(self.model, 'session'):
                 features = self.model.extract_features(batch)
-                features = features.cpu().numpy()
+                if isinstance(features, torch.Tensor):
+                    features = features.numpy()
+            else:
+                with torch.no_grad():
+                    if batch.is_cuda or self.device == 'cuda':
+                        batch = batch.to(self.device)
+                    features = self.model.extract_features(batch)
+                    features = features.cpu().numpy()
             
             # Pair features with bboxes
             for feature, bbox in zip(features, valid_bboxes):

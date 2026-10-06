@@ -26,6 +26,16 @@ class BaseGalleryManager:
         self.uuid_to_faiss_id = {}  # Map UUID -> FAISS index ID (for lookups)
         self.index = self._load_or_create_index()
         
+        # Try connecting to Redis Vector DB if server is running
+        self.redis_manager = None
+        try:
+            from redis_gallery_manager import RedisGalleryManager
+            idx_name = "video_reid_idx" if "video" in self.index_path else "image_reid_idx"
+            self.redis_manager = RedisGalleryManager(index_name=idx_name, dim=self.embedding_dim)
+            print(f"[+] Active Redis Vector DB connected for index '{idx_name}'!")
+        except Exception as e:
+            print(f"Notice: Redis Vector DB not active ({e}). Using FAISS index.")
+        
     def _load_or_create_index(self):
         if os.path.exists(self.index_path) and os.path.exists(self.meta_path):
             print(f"Loading FAISS index from {self.index_path}")
@@ -180,6 +190,19 @@ class BaseGalleryManager:
             
             result_uuid = matched_identity_uuid
 
+        # Sync vector embedding and metadata to Redis Vector DB
+        if getattr(self, 'redis_manager', None):
+            try:
+                feat_vec = feature[0] if feature.ndim > 1 else feature
+                self.redis_manager.add_identity(person_id, feat_vec, {
+                    'uuid': result_uuid,
+                    'name': name,
+                    'camera_id': camera_id or self.camera_id,
+                    'exemplars': [{'image_path': image_path, 'timestamp': datetime.now().isoformat()}]
+                })
+            except Exception as e:
+                print(f"Redis Vector DB sync notice: {e}")
+
         self.save_index()
         return result_uuid
 
@@ -241,54 +264,82 @@ class BaseGalleryManager:
         return self.add_identity_embedding(feature[0], person_id, name, image_path, match_threshold=0.50, max_exemplars=5)
 
 class VideoGalleryManager(BaseGalleryManager):
-    """Uses Trained DINOv3 for robust tracking with exemplar-based identity storage."""
+    """Uses Trained DINOv3 or ONNX DINOv2 for robust tracking with exemplar-based identity storage."""
     def __init__(self, index_path: str = "video_gallery.faiss", meta_path: str = "video_meta.pkl", device: str = None, camera_id: str = None):
         device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
-        super().__init__(index_path, meta_path, 512, device, camera_id=camera_id)
+        super().__init__(index_path, meta_path, 384 if device == 'cpu' else 512, device, camera_id=camera_id)
         # provenance
-        self.model_type = "dinov3"
-        self.match_threshold = 0.65  # Confidence for matching existing identities (stricter to prevent false merges)
+        self.match_threshold = 0.65  # Confidence for matching existing identities
         self.max_exemplars = 5       # Max exemplar crops per identity
-        print(f"Loading Trained DINOv3 for Video Tracking on {device}...")
         
-        # Determine path to net_last.pth
-        pth_path = os.path.join(os.path.dirname(__file__), "net_last.pth")
-        if not os.path.exists(pth_path):
-            pth_path = os.path.join(os.path.dirname(__file__), "..", "oracle_best.pth")
-            
-        self.model = load_v3(model_path=pth_path, device=device)
-        self.model.eval()
+        if device == 'cpu':
+            print(f"Loading ONNX Runtime DINOv2 for Video Tracking on {device}...")
+            from model_loader_onnx import load_onnx_reid_model
+            self.model = load_onnx_reid_model()
+            self.model_type = "dinov2_onnx"
+            self.embedding_dim = 384
+            # Update index dimension if needed
+            self.index = faiss.IndexFlatIP(384)
+        else:
+            print(f"Loading Trained DINOv3 for Video Tracking on {device}...")
+            self.model_type = "dinov3"
+            pth_path = os.path.join(os.path.dirname(__file__), "net_last.pth")
+            if not os.path.exists(pth_path):
+                pth_path = os.path.join(os.path.dirname(__file__), "..", "oracle_best.pth")
+            self.model = load_v3(model_path=pth_path, device=device)
+            self.model.eval()
 
     def extract_feature(self, image: np.ndarray) -> np.ndarray:
-        tensor = resize_and_normalize(image, target_size=(256, 128))
-        tensor = tensor.to(self.device)
-        with torch.no_grad():
+        target_sz = (252, 126) if getattr(self, 'model_type', '') == 'dinov2_onnx' else (256, 128)
+        tensor = resize_and_normalize(image, target_size=target_sz)
+        if hasattr(self.model, 'session'):
             feature = self.model.extract_features(tensor)
-            feature = feature.cpu().numpy().astype(np.float32)
+            if isinstance(feature, torch.Tensor):
+                feature = feature.numpy()
+        else:
+            tensor = tensor.to(self.device)
+            with torch.no_grad():
+                feature = self.model.extract_features(tensor)
+                feature = feature.cpu().numpy().astype(np.float32)
         if not feature.flags.c_contiguous:
             feature = np.ascontiguousarray(feature)
         faiss.normalize_L2(feature)
         return feature
 
 class ImageGalleryManager(BaseGalleryManager):
-    """Uses DINOv3 for Top-K static image search."""
+    """Uses ONNX / PyTorch DINO for Top-K static image search."""
     def __init__(self, model_weights: str, index_path: str = "image_gallery.faiss", meta_path: str = "image_meta.pkl", device: str = None, camera_id: str = None):
         device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
-        super().__init__(index_path, meta_path, 512, device, camera_id=camera_id)
+        super().__init__(index_path, meta_path, 384 if device == 'cpu' else 512, device, camera_id=camera_id)
         # provenance
-        self.model_type = "dinov3"
         self.match_threshold = 0.55  # Stricter threshold for image search
         self.max_exemplars = 3       # Fewer exemplars for static images
-        print(f"Loading DINOv3 for Image Search on {device}...")
-        self.model = load_v3(model_weights, device=device)
-        self.model.eval()
+        
+        if device == 'cpu':
+            print(f"Loading ONNX Runtime DINOv2 for Image Search on {device}...")
+            from model_loader_onnx import load_onnx_reid_model
+            self.model = load_onnx_reid_model()
+            self.model_type = "dinov2_onnx"
+            self.embedding_dim = 384
+            self.index = faiss.IndexFlatIP(384)
+        else:
+            print(f"Loading DINOv3 for Image Search on {device}...")
+            self.model_type = "dinov3"
+            self.model = load_v3(model_weights, device=device)
+            self.model.eval()
 
     def extract_feature(self, image: np.ndarray) -> np.ndarray:
-        tensor = resize_and_normalize(image, target_size=(256, 128))
-        tensor = tensor.to(self.device)
-        with torch.no_grad():
+        target_sz = (252, 126) if getattr(self, 'model_type', '') == 'dinov2_onnx' else (256, 128)
+        tensor = resize_and_normalize(image, target_size=target_sz)
+        if hasattr(self.model, 'session'):
             feature = self.model.extract_features(tensor)
-            feature = feature.cpu().numpy().astype(np.float32)
+            if isinstance(feature, torch.Tensor):
+                feature = feature.numpy()
+        else:
+            tensor = tensor.to(self.device)
+            with torch.no_grad():
+                feature = self.model.extract_features(tensor)
+                feature = feature.cpu().numpy().astype(np.float32)
         if not feature.flags.c_contiguous:
             feature = np.ascontiguousarray(feature)
         faiss.normalize_L2(feature)

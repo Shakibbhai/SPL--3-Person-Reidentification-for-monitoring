@@ -141,7 +141,7 @@ def draw_bbox_with_id(frame: np.ndarray,
     x1, y1, x2, y2 = bbox
     
     # Draw bounding box
-    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 3)
     
     # Prepare text
     if confidence > 1.5:
