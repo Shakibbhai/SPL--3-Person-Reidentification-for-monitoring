@@ -12,9 +12,9 @@ Next.js 14 · FastAPI · YOLO11 · ByteTrack · CLIP-ReID · OSNet-AIN · CUDA
 
 <br><br>
 
-<video src="cctv_of_hall_ReID.mp4" width="560" controls></video>
+<img src="docs/media/cctv_hall_reid.gif" alt="Hall corridor CCTV Re-ID evaluation footage" width="420">
 
-*Hall corridor CCTV Re-ID evaluation video ([MP4](cctv_of_hall_ReID.mp4)).*
+*Hall corridor CCTV Re-ID evaluation video.*
 
 </div>
 
@@ -236,14 +236,14 @@ df -h /                                            # frames are kept 7 days; kee
 The backend reads `.env` from the repository root. The settings that matter most:
 
 | Variable | Recommended | Meaning |
-|---|---|---|
+|:---|:---|:---|
 | `YOLO_MODEL_PATH` | `./data/models/yolo11x.pt` | Person detector |
 | `YOLO_CONFIDENCE` | `0.3` | Detection threshold |
-| `REID_OVERLAY_WEIGHTS` | `./data/models/reid/clip_msmt17.pt,./data/models/reid/clip_market1501.pt,./data/models/reid/osnet_ain_x1_0_msmt17.pt` | Re-ID models, fused |
+| `REID_OVERLAY_WEIGHTS` | `./data/models/reid/clip_msmt17.pt`,<br>`./data/models/reid/clip_market1501.pt`,<br>`./data/models/reid/osnet_ain_x1_0_msmt17.pt` | Re-ID models, fused |
 | `REID_OVERLAY_USE_PERSONVIT` | `false` | Leave PersonViT out of the live Re-ID |
 | `REID_MATCH_THRESHOLD` | `0.58` | Cosine score needed to reuse an ID |
 | `MIN_CAPTURE_INTERVAL_SECONDS` | `0.2` on a GPU, `1.0` on a CPU | Fastest capture rate |
-| `BOXMOT_DEVICE` | `cuda:0` (or `cpu`) | Device for tracking and Re-ID |
+| `BOXMOT_DEVICE` | `cuda:0` *(or `cpu`)* | Device for tracking and Re-ID |
 | `DATABASE_URL` | `sqlite+aiosqlite:///./data/app.db` | Database |
 
 ## Project structure
