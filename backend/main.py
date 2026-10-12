@@ -408,7 +408,7 @@ async def stream_video(filename: str, mode: str, camera_id: str = "camera_1", th
         device=video_manager.device,
         gallery_manager=video_manager,
         use_yolo=True,
-        yolo_model=os.environ.get("YOLO_MODEL", "yolov8x.pt"),
+        yolo_model=os.environ.get("YOLO_MODEL", "yolov8n.pt" if os.path.exists(os.path.join(os.path.dirname(__file__), "..", "yolov8n.pt")) else "yolov8x.pt"),
         similarity_threshold=threshold,
         camera_id=camera_id
     )
@@ -490,7 +490,7 @@ else:
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 10100))
+    port = int(os.environ.get("PORT", 8000))
     host = os.environ.get("HOST", "0.0.0.0")
     uvicorn.run("main:app", host=host, port=port, reload=False)
 

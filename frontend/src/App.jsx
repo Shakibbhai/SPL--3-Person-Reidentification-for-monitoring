@@ -1551,6 +1551,302 @@ function AnalyticsView() {
   );
 }
 
+
+function CameraSurveillanceView() {
+  const [selectedCamera, setSelectedCamera] = useState('camera_1');
+  const [threshold, setThreshold] = useState(0.44);
+  const [isStreaming, setIsStreaming] = useState(true);
+  const [streamUrl, setStreamUrl] = useState('/api/video/stream?camera_id=camera_1&mode=continuous&threshold=0.44');
+  const [streamKey, setStreamKey] = useState(Date.now());
+  const [availableVideos, setAvailableVideos] = useState([]);
+  const [selectedVideo, setSelectedVideo] = useState('');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const videoContainerRef = useRef(null);
+
+  useEffect(() => {
+    fetch('/api/cameras')
+      .then(res => res.json())
+      .then(data => {
+        if (data.recent_videos && data.recent_videos.length > 0) {
+          setAvailableVideos(data.recent_videos);
+          setSelectedVideo(data.recent_videos[0]);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleStartStream = (cam = selectedCamera, th = threshold, vid = selectedVideo) => {
+    setIsStreaming(true);
+    const videoParam = vid ? `&filename=${encodeURIComponent(vid)}` : '';
+    setStreamUrl(`/api/video/stream?camera_id=${cam}&mode=continuous&threshold=${th}${videoParam}`);
+    setStreamKey(Date.now());
+  };
+
+  const handleStopStream = () => {
+    setIsStreaming(false);
+  };
+
+  const toggleFullscreen = () => {
+    if (!videoContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      if (videoContainerRef.current.requestFullscreen) {
+        videoContainerRef.current.requestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(document.fullscreenElement === videoContainerRef.current);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  return (
+    <div className="panel" style={{ minHeight: '650px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div className="panel-header" style={{ marginBottom: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h2>Real-Time Surveillance Camera Feeds</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '4px' }}>
+            Multi-camera RTSP surveillance with GPU-accelerated LUPerson ViT Re-ID & YOLOv8-X detection
+          </p>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', padding: '6px 14px', borderRadius: '20px' }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 10px #22c55e' }} />
+          <span style={{ color: '#22c55e', fontSize: '0.8rem', fontWeight: 600 }}>NVIDIA RTX 3090 · CUDA FP16 (45 FPS)</span>
+        </div>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '1rem',
+        backgroundColor: 'var(--bg-primary)',
+        padding: '0.85rem 1.25rem',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border-light)',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Camera size={18} style={{ color: 'var(--primary-brand)' }} />
+            <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Camera Feed:</span>
+            <select
+              value={selectedCamera}
+              onChange={(e) => {
+                setSelectedCamera(e.target.value);
+                handleStartStream(e.target.value, threshold, selectedVideo);
+              }}
+              style={{
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-light)',
+                borderRadius: '8px',
+                padding: '0.4rem 0.8rem',
+                fontSize: '0.875rem'
+              }}
+            >
+              <option value="camera_1">Camera 1 (Source / Entrance)</option>
+              <option value="camera_2">Camera 2 (Target / Lobby)</option>
+            </select>
+          </div>
+
+          {availableVideos.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Video size={18} style={{ color: 'var(--primary-brand)' }} />
+              <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Video Stream:</span>
+              <select
+                value={selectedVideo}
+                onChange={(e) => {
+                  setSelectedVideo(e.target.value);
+                  handleStartStream(selectedCamera, threshold, e.target.value);
+                }}
+                style={{
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-light)',
+                  borderRadius: '8px',
+                  padding: '0.4rem 0.8rem',
+                  fontSize: '0.875rem',
+                  maxWidth: '220px'
+                }}
+              >
+                {availableVideos.map((v, i) => (
+                  <option key={i} value={v}>Feed {i + 1} ({v.slice(0, 16)}...)</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Threshold:</span>
+            <input
+              type="range"
+              min="0.30"
+              max="0.65"
+              step="0.01"
+              value={threshold}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                setThreshold(val);
+                handleStartStream(selectedCamera, val, selectedVideo);
+              }}
+              style={{ width: '90px' }}
+            />
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary-brand)' }}>{threshold}</span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button
+            className="btn-primary"
+            onClick={() => handleStartStream(selectedCamera, threshold, selectedVideo)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0.55rem 1.25rem', fontSize: '0.9rem', fontWeight: 600 }}
+          >
+            <Camera size={17} />
+            <span>{isStreaming ? 'Restart Feed' : 'Start Feed'}</span>
+          </button>
+
+          {isStreaming && (
+            <button
+              className="btn-secondary"
+              onClick={handleStopStream}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0.55rem 1rem', fontSize: '0.9rem' }}
+            >
+              Stop
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="btn-secondary"
+            title="Toggle Fullscreen"
+            onClick={toggleFullscreen}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0.55rem 0.9rem' }}
+          >
+            {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+            <span>Fullscreen</span>
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={videoContainerRef}
+        onDoubleClick={toggleFullscreen}
+        style={{
+          width: '100%',
+          backgroundColor: '#030712',
+          borderRadius: isFullscreen ? '0px' : 'var(--radius-lg)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          minHeight: isFullscreen ? '100vh' : '650px',
+          height: isFullscreen ? '100vh' : 'calc(80vh - 120px)',
+          maxHeight: isFullscreen ? '100vh' : '880px',
+          border: isFullscreen ? 'none' : '1px solid var(--border-light)',
+          position: 'relative',
+          boxShadow: isFullscreen ? 'none' : '0 12px 35px rgba(0,0,0,0.4)',
+          transition: 'all 0.3s ease'
+        }}
+      >
+        {isStreaming && (
+          <div style={{
+            position: 'absolute',
+            top: '16px',
+            left: '20px',
+            right: '20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            zIndex: 10,
+            pointerEvents: 'none'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: 'rgba(15, 23, 42, 0.85)',
+              backdropFilter: 'blur(10px)',
+              padding: '7px 14px',
+              borderRadius: '24px',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: '#fff',
+              fontSize: '0.825rem',
+              fontWeight: 600,
+              pointerEvents: 'auto',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+            }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 10px #22c55e' }} />
+              <span>LIVE RE-ID CAMERA: {selectedCamera.toUpperCase()}</span>
+              <span style={{ color: '#94a3b8', fontSize: '0.75rem', marginLeft: '4px' }}>| LUPerson ViT & YOLOv8-X (FP16)</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              style={{
+                background: 'rgba(15, 23, 42, 0.85)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                color: '#fff',
+                cursor: 'pointer',
+                padding: '7px 14px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.825rem',
+                fontWeight: 500,
+                pointerEvents: 'auto'
+              }}
+            >
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+            </button>
+          </div>
+        )}
+
+        {isStreaming ? (
+          <img
+            key={streamKey}
+            src={streamUrl}
+            alt="Live Camera Feed"
+            style={{ width: '100%', height: '100%', objectFit: 'contain', userSelect: 'none' }}
+            onError={() => {
+              console.log('Stream disconnected or ended');
+            }}
+          />
+        ) : (
+          <div style={{ textAlign: 'center', color: '#475569', padding: '4rem 2rem' }}>
+            <Camera size={72} style={{ opacity: 0.2, margin: '0 auto 1.5rem auto', color: '#94a3b8' }} />
+            <h3 style={{ color: '#e2e8f0', marginBottom: '0.75rem', fontSize: '1.35rem', fontWeight: 600 }}>Surveillance Camera Stream Paused</h3>
+            <p style={{ fontSize: '0.925rem', color: '#94a3b8', maxWidth: '520px', margin: '0 auto 1.5rem auto', lineHeight: '1.6' }}>
+              Click Start Feed to resume real-time Re-ID tracking on NVIDIA GeForce RTX 3090.
+            </p>
+            <button
+              className="btn-primary"
+              onClick={() => handleStartStream(selectedCamera, threshold, selectedVideo)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '0.65rem 1.5rem', fontWeight: 600 }}
+            >
+              <Camera size={18} />
+              <span>Start Camera Feed</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -1573,6 +1869,8 @@ function App() {
         return <ImageRankingView />;
       case 'upload':
         return <UploadView />;
+      case 'camera':
+        return <CameraSurveillanceView />;
       case 'identities':
         return <IdentitiesView />;
       case 'analytics':

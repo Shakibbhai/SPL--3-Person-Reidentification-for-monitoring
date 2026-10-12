@@ -45,3 +45,8 @@ Thumbs.db
 *.mkv
 scratch/
 backend/uploads/
+
+# Ignored demo files & backup READMEs
+README1.md
+readme1.md
+cctv_of_hall_ReID.mp4
